@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Number Grid Helper</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#111;background:#fff}*{box-sizing:border-box}body{margin:0;padding:16px}.wrap{max-width:760px;margin:auto}.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:12px 16px;background:#111;color:#fff}.secondary{background:#eee;color:#111}.stage{position:relative;border-radius:16px;overflow:hidden;background:#111;aspect-ratio:9/16}video,canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}#overlay{pointer-events:none}.status{margin:12px 0;padding:12px;border-radius:12px;background:#f3f3f3}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.cell{aspect-ratio:1;border:2px solid #ddd;border-radius:12px;display:grid;place-items:center;font-size:clamp(20px,6vw,36px);font-weight:800}.cell.next{border:5px solid #ff4d2d;background:#fff0ec}.hint{font-size:13px;color:#666;line-height:1.5}.big{font-size:32px;font-weight:900}.row{display:flex;justify-content:space-between;gap:12px;align-items:center}
+</style></head>
+<body><div class="wrap">
+<div class="controls"><button id="camera">เปิดกล้อง</button><button id="cal" class="secondary">ตั้งกรอบตาราง</button><button id="reset" class="secondary">เริ่มใหม่</button></div>
+<div class="stage" id="stage"><video id="video" playsinline muted></video><canvas id="overlay"></canvas></div>
+<div class="status"><div class="row"><div>เลขถัดไป</div><div id="next" class="big">1</div></div><div id="msg">เปิดกล้อง แล้ววางตารางเกมให้อยู่ในกรอบ</div></div>
+<div id="grid" class="grid"></div>
+<p class="hint">ต้นแบบนี้ใช้กล้องแบบต่อเนื่องและแบ่งพื้นที่เป็น 5×5 เพื่อช่วยชี้ตำแหน่ง เมื่อกด “ตั้งกรอบตาราง” ให้แตะมุมซ้ายบนและมุมขวาล่างของตารางบนภาพกล้อง จากนั้นระบบจะแสดงกรอบ 25 ช่องแบบเรียลไทม์ รุ่นนี้ยังไม่อ่านตัวเลขจากกล้องอัตโนมัติ เพราะต้องเทรน/ปรับตัวอ่านเลขให้ตรงกับฟอนต์เกมก่อน</p>
+</div>
+<script>
+(()=>{const v=document.querySelector('#video'),o=document.querySelector('#overlay'),ctx=o.getContext('2d'),stage=document.querySelector('#stage'),grid=document.querySelector('#grid'),msg=document.querySelector('#msg'),nextEl=document.querySelector('#next');let stream=null,cal=false,pts=[],roi=null,next=1;
+for(let i=0;i<25;i++){let d=document.createElement('div');d.className='cell';d.textContent='·';grid.appendChild(d)}
+function resize(){const r=stage.getBoundingClientRect(),d=devicePixelRatio||1;o.width=r.width*d;o.height=r.height*d;ctx.setTransform(d,0,0,d,0,0)}
+addEventListener('resize',resize);resize();
+async function camera(){try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});v.srcObject=stream;await v.play();msg.textContent='กล้องพร้อม — กด “ตั้งกรอบตาราง”';draw()}catch(e){msg.textContent='เปิดกล้องไม่ได้: '+e.message}}
+function draw(){resize();const r=stage.getBoundingClientRect();ctx.clearRect(0,0,r.width,r.height);if(roi){ctx.strokeStyle='#ff4d2d';ctx.lineWidth=3;ctx.strokeRect(roi.x,roi.y,roi.w,roi.h);ctx.strokeStyle='rgba(255,77,45,.45)';ctx.lineWidth=1;for(let i=1;i<5;i++){ctx.beginPath();ctx.moveTo(roi.x+roi.w*i/5,roi.y);ctx.lineTo(roi.x+roi.w*i/5,roi.y+roi.h);ctx.stroke();ctx.beginPath();ctx.moveTo(roi.x,roi.y+roi.h*i/5);ctx.lineTo(roi.x+roi.w,roi.y+roi.h*i/5);ctx.stroke()}}requestAnimationFrame(draw)}
+stage.addEventListener('pointerdown',e=>{if(!cal)return;const r=stage.getBoundingClientRect();pts.push({x:e.clientX-r.left,y:e.clientY-r.top});if(pts.length===2){let a=pts[0],b=pts[1];roi={x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),w:Math.abs(a.x-b.x),h:Math.abs(a.y-b.y)};cal=false;msg.textContent='กรอบพร้อม — ขั้นต่อไปคือเพิ่มตัวอ่านเลขอัตโนมัติ';pts=[]}});
+document.querySelector('#camera').onclick=camera;document.querySelector('#cal').onclick=()=>{cal=true;pts=[];msg.textContent='แตะมุมซ้ายบน แล้วแตะมุมขวาล่างของตาราง'};document.querySelector('#reset').onclick=()=>{next=1;nextEl.textContent=1;roi=null;[...grid.children].forEach(x=>{x.textContent='·';x.classList.remove('next')});msg.textContent='รีเซ็ตแล้ว'};
+})();
+</script></body></html>
